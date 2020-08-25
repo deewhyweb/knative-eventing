@@ -1,0 +1,20 @@
+apiVersion: sources.knative.dev/v1alpha2
+kind: ContainerSource
+metadata:
+  name: test-heartbeats
+spec:
+  template:
+    spec:
+      containers:
+        - image: image-registry.openshift-image-registry.svc:5000/knative-test/container-source:latest
+          name: container-source
+          env:
+            - name: POD_NAME
+              value: "mypod"
+            - name: POD_NAMESPACE
+              value: "event-test"
+  sink:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: event-display-nodejs

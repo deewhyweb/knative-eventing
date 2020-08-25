@@ -95,3 +95,7 @@ When then event-display-nodejs-xxxx pod is created, montitor the logs with:
 Do remove the cron source eventing example, run:
 
 `oc delete -f ./deploy/eventinghello-source.yaml`
+
+# Container Source example
+
+oc new-build nodejs:12~https://github.com/deewhyweb/knative-eventing.git --context-dir=/samples/container-source --to="container-source" --name="container-source"
