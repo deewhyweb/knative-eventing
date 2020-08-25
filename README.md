@@ -84,3 +84,14 @@ Test the Knative service
 
 `oc apply -f ./deploy/eventinghello-source.yaml`
 
+Every two minutes the cron source will create an event which will invoke the knative service.  You can monitor this by running 
+
+`oc get pods -w`
+
+When then event-display-nodejs-xxxx pod is created, montitor the logs with:
+
+`oc logs -f -c user-container -n knative-test  $(oc get pods -o name -n knative-test | grep event-display)` 
+
+Do remove the cron source eventing example, run:
+
+`oc delete -f ./deploy/eventinghello-source.yaml`

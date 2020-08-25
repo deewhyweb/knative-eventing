@@ -24,8 +24,11 @@ app.post('/', (req, res) => {
   try {
     // delete req.headers['ce-time']
     let myevent = receiver.accept(req.headers,req.body);
-    console.log(myevent);
-    console.log(myevent.spec.payload.data);
+    //console.log(myevent);
+    console.log('CloudEvent Object received. \n');
+    console.log('Version: ', myevent.spec.payload.specversion, ' \n');
+    console.log('Type: ', myevent.spec.payload.type, ' \n');
+    console.log('Data: ', myevent.spec.payload.data, ' \n');
     res.status(201).send("Event Accepted");
 
   } catch(err) {
