@@ -50,6 +50,37 @@ imc-controller-9dcc65bd-xrstj          1/1       Running   0          11s
 imc-dispatcher-6bdddfc8bf-2fwfd        1/1       Running   0          11s
 ```
 
-# Deploy simple knative service
+Create knative-test project
+
+`oc new-project knative-test`
+
+# Build and deploy simple knative service
+
+Build node.js app image
+
+`oc new-build nodejs:12~https://github.com/deewhyweb/knative-eventing.git --context-dir=/samples/node`
+
+Watch the build logs:
+
+`oc logs -f  -n knative-test  $(oc get pods -o name -n knative-test | grep build)`
+
+Once the image is pushed successfully, and the build is complete we can delete the build pod:
+
+`oc delete pod --field-selector=status.phase==Succeeded -n knative-test`
+
+Deploy the Knative service
+
+`oc apply -f ./deploy/event-display-nodejs.yaml`
+
+Monitor the logs of the node.js Knative service:
+
+`oc logs -f -c user-container -n knative-test  $(oc get pods -o name -n knative-test | grep event-display)` 
+
+Test the Knative service
+
+`curl -X POST $(oc get ksvc event-display-nodejs -o custom-columns=url:status.url --no-headers)  -w  "%{time_starttransfer}\n"`
 
 # Create simple cron source knative eventing example
+
+`oc apply -f ./deploy/eventinghello-source.yaml`
+
