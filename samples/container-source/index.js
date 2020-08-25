@@ -1,12 +1,11 @@
-const express = require("express");
-const app = express();
-const { CloudEvent, Emitter, Protocol, Version } = require("cloudevents");
+const { CloudEvent, Emitter } = require("cloudevents");
 const emitter = new Emitter({
-  url: process.env.K_SINK,
+  url: process.env.K_SINK, // we get the url for the emitter from the K_SINK environment variable which is injected by the knative container source
 });
+var cron = require("node-cron");
 
-// app.get("/", (req, res) => {
-  console.log('About to emit event');
+const emitEvent = () => {
+  console.log("About to emit event");
   const event = new CloudEvent({
     type: "dev.knative.container.event",
     source:
@@ -15,7 +14,6 @@ const emitter = new Emitter({
       msg: "helloworld",
     },
   });
-
   emitter
     .send(event)
     .then((response) => {
@@ -23,9 +21,8 @@ const emitter = new Emitter({
       console.log("Response:", response);
     })
     .catch(console.error);
-  // res.status(201).send("Event Emitted");
-// });
-const port = process.env.PORT || 8080;
-app.listen(port, () => {
-  console.log("App Version 1.0 listening on: ", port);
+};
+
+cron.schedule("*/2 * * * *", () => {
+  emitEvent();
 });
