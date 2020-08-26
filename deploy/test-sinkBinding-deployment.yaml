@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sink-binding-deployment
+  labels:
+    app: sink-binding
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sink-binding
+  template:
+    metadata:
+      labels:
+        app: sink-binding
+    spec:
+      containers:
+      - name: container-source
+        image: image-registry.openshift-image-registry.svc:5000/knative-test/container-source:latest
+        ports:
+        - containerPort: 8080
+

@@ -1,9 +1,8 @@
 const express = require('express');
 const app = express();
 const {
-  CloudEvent,
   HTTPReceiver
-} = require("cloudevents-sdk");
+} = require("cloudevents");
 
 // Create a receiver to accept events over HTTP
 const receiver = new HTTPReceiver();

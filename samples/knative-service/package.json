@@ -10,7 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "cloudevents-sdk": "^2.0.2",
+    "cloudevents": "^3.1.0",
     "express": "^4.17.1"
   }
 }
