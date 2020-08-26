@@ -10,17 +10,17 @@ There are two terms we will use when we discuss Knative Eventing:
 * Sinks
 * Eventing Sources
 
-Sinks:  A sink is an event receiving service.  So once we have a Knative service deployed we can use this as a sink.
+**Sinks:**  A sink is an event receiving service.  So once we have a Knative service deployed we can use this as a sink.
 
-Eventing sources: Knative eventing sources are responsible for connecting to and retrieving events from a system.  
+**Eventing sources:** Knative eventing sources are responsible for connecting to and retrieving events from a system.  
 
 For the purposes of this enablement we will demonstrate the following event sources:
 	
 * **Ping source** - The PingSource fires events based on a given Cron schedule.
-* **Container source** - The ContainerSource will instantiate container image(s) that can generate events.  The ContainerSource will inject environment variables $K_SINK and $K_CE_OVERRIDES into the pod.  The application running in the container will use the $K_SINK environment variable as the destination to send the cloud event.
+* **Container source** - The ContainerSource will instantiate container image(s) that can generate events.  The ContainerSource will inject environment variables $K_SINK and $K_CE_OVERRIDES into the pod.  The application running in the container will use the $K_SINK environment variable as the destination to send the cloud event. K_CE_OVERRIDES are be used to override CloudEvents properties on the CloudEvent to be emitted.
 * **API server source** - fires a new event each time a Kubernetes resource is created, updated or deleted.
 * **SinkBinding** - SinkBinding is similar to container source, they can both achieve the same end result, a container running and emitting events to a destination defined by $K_SINK.  The difference is SinkBinding is based on the object creating the pod, e.g. deployment, cronJob, statefulSet etc. any kubernetes object which defines a PodTemplateSpec
-* **Kafka** - allows you to emit events from a particular Kafka topic
+* **Kafka** - allows you to emit events from Kafka topics
 * TODO - Camel-K - allows to generate events from any of the 300+ components provided by Apache camel
 
 
@@ -169,6 +169,9 @@ curl $(oc get ksvc event-display-nodejs -o custom-columns=url:status.url --no-he
 
 You should see the following returned from the call:
 
+```
+Event Accepted
+```
 
 ## Create simple cron source knative eventing example
 
@@ -193,7 +196,7 @@ Every two minutes the eventinghello-cronjob-source cron source will create an ev
 
 `oc apply -f ./deploy/eventinghello-source.yaml`
 
-  You can monitor this by running
+You can monitor this by running
 
 `oc get pods -w`
 
@@ -323,7 +326,7 @@ spec:
 
 ```
 
-The SinkBinding object is described with the following yaml.  Effectively what this is saying is any deployment objects which match the label `app: sink-binding` will be deployed with the K_SINK environment variable injected into the pod.
+The SinkBinding object is described with the following yaml.  Any deployment objects which match the label `app: sink-binding` will be deployed with the K_SINK environment variable injected into the pod.
 
 ```
 apiVersion: sources.knative.dev/v1alpha2
