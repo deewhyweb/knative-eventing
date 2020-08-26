@@ -16,11 +16,11 @@ Eventing sources: Knative eventing sources are responsible for connecting to and
 
 For the purposes of this enablement we will demonstrate the following event sources:
 	
-* Ping source - The PingSource fires events based on a given Cron schedule.
-* Container source - The ContainerSource will instantiate container image(s) that can generate events.  The ContainerSource will inject environment variables $K_SINK and $K_CE_OVERRIDES into the pod.  The application running in the container will use the $K_SINK environment variable as the destination to send the cloud event.
-* API server source - fires a new event each time a Kubernetes resource is created, updated or deleted.
-* SinkBinding - SinkBinding is similar to container source, they can both achieve the same end result, a container running and emitting events to a destination defined by $K_SINK.  The difference is SinkBinding is based on the object creating the pod, e.g. deployment, cronJob, statefulSet etc. any kubernetes object which defines a PodTemplateSpec
-* Kafka - allows you to emit events from a particular Kafka topic
+* **Ping source** - The PingSource fires events based on a given Cron schedule.
+* **Container source** - The ContainerSource will instantiate container image(s) that can generate events.  The ContainerSource will inject environment variables $K_SINK and $K_CE_OVERRIDES into the pod.  The application running in the container will use the $K_SINK environment variable as the destination to send the cloud event.
+* **API server source** - fires a new event each time a Kubernetes resource is created, updated or deleted.
+* **SinkBinding** - SinkBinding is similar to container source, they can both achieve the same end result, a container running and emitting events to a destination defined by $K_SINK.  The difference is SinkBinding is based on the object creating the pod, e.g. deployment, cronJob, statefulSet etc. any kubernetes object which defines a PodTemplateSpec
+* **Kafka** - allows you to emit events from a particular Kafka topic
 * TODO - Camel-K - allows to generate events from any of the 300+ components provided by Apache camel
 
 
