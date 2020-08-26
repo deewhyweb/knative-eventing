@@ -109,16 +109,17 @@ This service is a simple node.js app using the CloudEvents [javascript sdk](http
 ```
 const app = require('express')();
 const {Receiver} = require("cloudevents");
+const bodyParser = require('body-parser')
+app.use(bodyParser.json())
+
 app.post('/', (req, res) => {
-  
   try {
-    // delete req.headers['ce-time']
+
     let myevent = Receiver.accept(req.headers, req.body);
-    console.log(myevent);
     console.log('CloudEvent Object received. \n');
-    console.log('Version: ', myevent.spec.payload.specversion, ' \n');
-    console.log('Type: ', myevent.spec.payload.type, ' \n');
-    console.log('Data: ', myevent.spec.payload.data, ' \n');
+    console.log('Version: ', myevent.specversion, ' \n');
+    console.log('Type: ', myevent.type, ' \n');
+    console.log('Data: ', myevent.data, ' \n');
     res.status(201).send("Event Accepted");
 
   } catch(err) {
@@ -361,7 +362,7 @@ Once the SinkBinding source is in place, we can create the sink-binding-deployme
 
 `oc apply -f ./deploy/sinkBinding-deployment.yaml`
 
-When this pod spins up monitor the event-display pod with: 
+When the event-display pod spins up monitor the event-display pod with: 
 
 `oc logs -f -c user-container -n knative-test  $(oc get pods -o name -n knative-test | grep event-display)` 
 
@@ -372,6 +373,8 @@ To remove the container source eventing example, run:
 `oc delete -f ./deploy/sinkBinding-deployment.yaml`
 
 ## Kafka Event source example
+
+First thing we need to do is setup a kafka namespace and deploy a Kafka cluster using the strimzi operator
 
 Create a kafka namespace
 
@@ -393,27 +396,66 @@ my-cluster-zookeeper-1                        1/1       Running   0          102
 my-cluster-zookeeper-2                        1/1       Running   0          102s
 ```
 
-Deploy the Kafka knative eventing component
+Once Kafka is up and running we'll deploy the Kafka knative eventing component
 
 `oc apply -f ./deploy/knativeEventingKafka.yaml`
 
-Create a kafka topic
+Create a kafka topic "my-topic"
 
 `oc apply -f ./deploy/kafka-topic.yaml`
 
+Once this topic is created we should be able to list the topics using
+
 `oc  -n kafka exec my-cluster-kafka-0 -c kafka -i -t -- bin/kafka-topics.sh --bootstrap-server localhost:9092 --list`
 
-Deploy the kafka event source
+```
+__consumer_offsets
+my-topic
+```
+
+Next we'll deploy the kafka event source using the KafkaSource object. Key things to note here are
+* The topics listed are my-topic
+* The sink is configured as event-display-nodejs
+
+
+```
+apiVersion: sources.knative.dev/v1alpha1
+kind: KafkaSource
+metadata:
+  name: kafka-source
+spec:
+  consumerGroup: knative-group
+  bootstrapServers: 
+  - my-cluster-kafka-bootstrap.kafka:9092 
+  topics: 
+  - my-topic
+  sink:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: event-display-nodejs
+```
+
+To create this event source run: 
 
 `oc apply -f ./deploy/event-source-kafka.yaml`
 
-Test creating some messages in the my-topic topic
+Once this event source is created we can now test creating some messages in the my-topic topic
 
 `oc  -n kafka exec my-cluster-kafka-0 -c kafka -i -t -- bin/kafka-console-producer.sh --bootstrap-server localhost:9092 --topic my-topic` 
 
 Enter some json e.g.
 
 `{"msg":"hi"}`
+
+When the event-display pod spins up monitor the event-display pod with: 
+
+`oc logs -f -c user-container -n knative-test  $(oc get pods -o name -n knative-test | grep event-display)` 
+
+To remove the kafka source eventing example, run:
+
+`oc delete -f ./deploy/event-source-kafka.yaml`
+
 
 <!-- # Camel-k Event source example
 
@@ -427,17 +469,46 @@ Deploy the camel time source
 
 ## API server source example
 
-Create a service account in knative-test namespace with permissions to get, list, and watch api events.
+Our final event source example is the Kubernetes api source, this will create events based on kubernetes events e.g pods created / deleted.
+
+First thing we'll do is create a service account in knative-test namespace with permissions to get, list, and watch api events.
 
 `oc apply -f ./deploy/apiserversource-sa.yaml`
 
-Deploy the apiserversource knative source
+Next we'll deploy the apiserversource knative source, key things here are:
+
+* serviceAccountName: set to events-sa, the service account we just created with permissions to get, list, and watch api events in this namespace
+* The sink pointing to event-display-nodejs
+
+```
+apiVersion: sources.knative.dev/v1alpha2
+kind: ApiServerSource
+metadata:
+ name: testevents
+spec:
+ serviceAccountName: events-sa
+ mode: Resource
+ resources:
+   - apiVersion: v1
+     kind: Event
+ sink:
+   ref:
+     apiVersion: serving.knative.dev/v1
+     kind: Service
+     name: event-display-nodejs 
+```
+
+To create this object, run: 
 
 `oc apply -f ./deploy/apiserversource.yaml`
 
-Create some kubernetes events
+Now we can test by creating some kubernetes events
+
+Create a pod:
 
 `oc -n knative-test run busybox --image=busybox --restart=Never -- ls`
+
+Delete a pod:
 
 `oc -n knative-test delete pod busybox`
 
@@ -486,3 +557,7 @@ Data:  {
   type: 'Normal'
 }  
 ```
+
+To delete this object, run: 
+
+`oc delete -f ./deploy/apiserversource.yaml`
