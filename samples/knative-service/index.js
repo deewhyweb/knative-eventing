@@ -1,11 +1,6 @@
-const express = require('express');
-const app = express();
-const {
-  HTTPReceiver
-} = require("cloudevents");
+const app = require('express')();
+const {Receiver} = require("cloudevents");
 
-// Create a receiver to accept events over HTTP
-const receiver = new HTTPReceiver();
 app.use((req, res, next) => {
   let data = "";
 
@@ -22,7 +17,7 @@ app.post('/', (req, res) => {
   
   try {
     // delete req.headers['ce-time']
-    let myevent = receiver.accept(req.headers,req.body);
+    let myevent = Receiver.accept(req.headers, req.body);
     //console.log(myevent);
     console.log('CloudEvent Object received. \n');
     console.log('Version: ', myevent.spec.payload.specversion, ' \n');
