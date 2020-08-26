@@ -104,9 +104,37 @@ Create knative-test project
 
 ## Build and deploy simple knative service
 
-This service is a simple node.js app using 
+This service is a simple node.js app using the CloudEvents [javascript sdk](https://www.npmjs.com/package/cloudevents) from the CNCF foundation .  The code is pretty simple, it just creates a CloudEvents object from the post data and outputs this to the logs.
 
-Build node.js app image
+```
+const app = require('express')();
+const {Receiver} = require("cloudevents");
+app.post('/', (req, res) => {
+  
+  try {
+    // delete req.headers['ce-time']
+    let myevent = Receiver.accept(req.headers, req.body);
+    console.log(myevent);
+    console.log('CloudEvent Object received. \n');
+    console.log('Version: ', myevent.spec.payload.specversion, ' \n');
+    console.log('Type: ', myevent.spec.payload.type, ' \n');
+    console.log('Data: ', myevent.spec.payload.data, ' \n');
+    res.status(201).send("Event Accepted");
+
+  } catch(err) {
+    console.error('Error', err);
+    res.status(415)
+          .header("Content-Type", "application/json")
+          .send(JSON.stringify(err));
+  }
+});
+const port = process.env.PORT || 8080;
+app.listen(port, () => {
+  console.log('App Version 1.0 listening on: ', port);
+});
+```
+
+First we're going to build this image and push it to the cluster image registry using S2I:
 
 `oc new-build nodejs:12~https://github.com/deewhyweb/knative-eventing.git --context-dir=/samples/knative-service`
 
@@ -118,7 +146,7 @@ Once the image is pushed successfully, and the build is complete we can delete t
 
 `oc delete pod --field-selector=status.phase==Succeeded -n knative-test`
 
-Deploy the Knative service
+Next we're going to deploy the Knative service using this image we've just built.
 
 `oc apply -f ./deploy/event-display-nodejs.yaml`
 
@@ -128,7 +156,15 @@ Monitor the logs of the node.js Knative service:
 
 Test the Knative service
 
-`curl -X POST $(oc get ksvc event-display-nodejs -o custom-columns=url:status.url --no-headers)  -w  "%{time_starttransfer}\n"`
+`curl -X POST   -w  "%{time_starttransfer}\n" -H "Content-Type: application/json" --data "{\"specversion\":\"1.0\", \
+  \"type\":\"com.github.pull.create\", \
+  \"source\":\"https://github.com/cloudevents/spec/pull/123\", \
+  \"id\":\"b25e2717-a470-45a0-8231-985a99aa9416\", \
+  \"time\":\"2019-11-06T11:08:00Z\", \
+  \"datacontenttype\":\"application/json\", \
+  \"data\":{ \
+    \"much\":\"wow\" \
+  }}" $(oc get ksvc event-display-nodejs -o custom-columns=url:status.url --no-headers)`
 
 ## Create simple cron source knative eventing example
 

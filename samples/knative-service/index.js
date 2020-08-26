@@ -1,22 +1,12 @@
 const app = require('express')();
 const {Receiver} = require("cloudevents");
 
-// app.use((req, res, next) => {
-//   let data = "";
-
-//   //req.setEncoding("utf8");
-//   req.on("data", function(chunk) {
-//       data += chunk;
-//   });
-//   req.on("end", function() {
-//       req.body = data;
-//       next();
-//   });
-// });
 app.post('/', (req, res) => {
   
   try {
     // delete req.headers['ce-time']
+    console.log('Received body');
+    console.log(req.body);
     let myevent = Receiver.accept(req.headers, req.body);
     console.log(myevent);
     console.log('CloudEvent Object received. \n');
