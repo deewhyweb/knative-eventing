@@ -4,7 +4,7 @@ metadata:
   name: eventinghello-cronjob-source
 spec:
   schedule: "*/2 * * * *"
-  data: '{"key": "every 2 mins"}'
+  data: '{"name": "General Klytus"}'
   sink:
     ref:
       apiVersion: serving.knative.dev/v1alpha1

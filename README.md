@@ -154,23 +154,45 @@ Monitor the logs of the node.js Knative service:
 
 `oc logs -f -c user-container -n knative-test  $(oc get pods -o name -n knative-test | grep event-display)` 
 
-Test the Knative service
+Test the Knative service with a sample CloudEvent post
 
-`curl -X POST   -w  "%{time_starttransfer}\n" -H "Content-Type: application/json" --data "{\"specversion\":\"1.0\", \
-  \"type\":\"com.github.pull.create\", \
-  \"source\":\"https://github.com/cloudevents/spec/pull/123\", \
-  \"id\":\"b25e2717-a470-45a0-8231-985a99aa9416\", \
-  \"time\":\"2019-11-06T11:08:00Z\", \
-  \"datacontenttype\":\"application/json\", \
-  \"data\":{ \
-    \"much\":\"wow\" \
-  }}" $(oc get ksvc event-display-nodejs -o custom-columns=url:status.url --no-headers)`
+```
+curl $(oc get ksvc event-display-nodejs -o custom-columns=url:status.url --no-headers) -w "\n" -X POST \
+    -H "content-type: application/json"  \
+    -H "ce-specversion: 1.0"  \
+    -H "ce-source: curl-command"  \
+    -H "ce-type: curl.demo"  \
+    -H "ce-id: 123-abc"  \
+    -d '{"name":"Dale Arden"}' 
+```
+
+You should see the following returned from the call:
+
 
 ## Create simple cron source knative eventing example
 
+Now that we have a Knative service running which will parse CloudEvents, we can start creating some example Event Sources, starting with a simple cron source.  To do this we can use the sources.knative.dev/CronJobSource a CRD which is created by default with Knative Eventing.
+
+```
+apiVersion: sources.knative.dev
+kind: CronJobSource
+metadata:
+  name: eventinghello-cronjob-source
+spec:
+  schedule: "*/2 * * * *"
+  data: '{"name": "General Klytus"}'
+  sink:
+    ref:
+      apiVersion: serving.knative.dev/v1alpha1
+      kind: Service
+      name: event-display-nodejs
+```
+
+Every two minutes the eventinghello-cronjob-source cron source will create an event which it will emit to the sink, in this case event-display-nodejs. To deploy this event source, run:
+
 `oc apply -f ./deploy/eventinghello-source.yaml`
 
-Every two minutes the cron source will create an event which will invoke the knative service.  You can monitor this by running 
+  You can monitor this by running
 
 `oc get pods -w`
 
@@ -178,27 +200,176 @@ When then event-display-nodejs-xxxx pod is created, montitor the logs with:
 
 `oc logs -f -c user-container -n knative-test  $(oc get pods -o name -n knative-test | grep event-display)` 
 
-Do remove the cron source eventing example, run:
+To remove the cron source eventing example, run:
 
 `oc delete -f ./deploy/eventinghello-source.yaml`
 
 ## Container Source example
 
-oc new-build nodejs:12~https://github.com/deewhyweb/knative-eventing.git --context-dir=/samples/container-source --to="container-source" --name="container-source"
+The container event source allows us to emit events from any OpenShift container.  In this example we're using the CLoudEvents SDK from CNCF to create and emit a CloudEvents compatible event.  The key thing to note here is the use of the "K_SINK" environment variable as the url to emit events.  This environment variable is injected into the pod by the ContainerSource. 
 
-oc apply -f ./deploy/eventing-container-source.yaml
+```
+const { CloudEvent, Emitter } = require("cloudevents");
+const emitter = new Emitter({
+  url: process.env.K_SINK, // we get the url for the emitter from the K_SINK environment variable which is injected by the knative container source
+});
+var cron = require("node-cron");
 
-oc get sources
+const emitEvent = () => {
+  console.log("About to emit event");
+  const event = new CloudEvent({
+    type: "dev.knative.container.event",
+    source:
+      "/apis/v1/namespaces/knative-test/cronjobsources/eventinghello-container-source",
+    data: {
+      name: "Hans Zarkov",
+    },
+  });
+  emitter
+    .send(event)
+    .then((response) => {
+      // handle the response
+      console.log("Response:", response);
+    })
+    .catch(console.error);
+};
+
+cron.schedule("*/2 * * * *", () => {
+  emitEvent();
+});
+```
+
+To build this container image, we'll again use S2I and push the image to the OpenShift registry
+
+`oc new-build nodejs:12~https://github.com/deewhyweb/knative-eventing.git --context-dir=/samples/container-source --to="container-source" --name="container-source"`
+
+Once the image is built, we can delete the completed pod:
+
+`oc delete pod --field-selector=status.phase==Succeeded -n knative-test`
+
+Next we will deploy the ContainerSource object which will create the pod and inject the K_SINK environment variable to enable events to be emitted.
+
+```
+apiVersion: sources.knative.dev/v1alpha2
+kind: ContainerSource
+metadata:
+  name: test-container-source
+spec:
+  template:
+    spec:
+      containers:
+        - image: image-registry.openshift-image-registry.svc:5000/knative-test/container-source:latest
+          name: container-source
+          env:
+            - name: POD_NAME
+              value: "mypod"
+            - name: POD_NAMESPACE
+              value: "knative-test"
+  sink:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: event-display-nodejs
+```
+
+To create this object, run:
+
+`oc apply -f ./deploy/eventing-container-source.yaml`
+
+
+Run `oc get sources` to view the list of Knative Eventing sources, you should see something like:
+```
+NAME                READY     REASON    SINK                                                         AGE
+test-container-source   True                http://event-display-nodejs.knative-test.svc.cluster.local   7s
+```
+
+Key thing here is the SINK url, this is the same url which is injected into the container source pod as K_SINK.
+
+When then event-display-nodejs-xxxx pod is created, montitor the logs with:
+
+`oc logs -f -c user-container -n knative-test  $(oc get pods -o name -n knative-test | grep event-display)` 
+
+To remove the container source eventing example, run:
+
+`oc delete -f ./deploy/eventing-container-source.yaml`
 
 ## Sink Binding example
 
-oc apply -f ./deploy/eventing-sinkBinding.yaml
+For the sink binding example we can use the same container as we did for the container source example, the end result is the same, the difference being the sinkBinding object is applied to the pods parent, in this case a deployment object. i.e.
 
-oc get sources
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sink-binding-deployment
+  labels:
+    app: sink-binding
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sink-binding
+  template:
+    metadata:
+      labels:
+        app: sink-binding
+    spec:
+      containers:
+      - name: container-source
+        image: image-registry.openshift-image-registry.svc:5000/knative-test/container-source:latest
+        ports:
+        - containerPort: 8080
+
+```
+
+The SinkBinding object is described with the following yaml.  Effectively what this is saying is any deployment objects which match the label `app: sink-binding` will be deployed with the K_SINK environment variable injected into the pod.
+
+```
+apiVersion: sources.knative.dev/v1alpha2
+kind: SinkBinding
+metadata:
+  name: test-sink-binding
+spec:
+  subject:
+    apiVersion: apps/v1
+    kind: Deployment
+    selector:
+      matchLabels:
+        app: sink-binding
+  sink:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: event-display-nodejs
+  ceOverrides:
+    extensions:
+      sink: bound
+```
+
+To deploy the SinkBinding object, run:
+
+`oc apply -f ./deploy/eventing-sinkBinding.yaml`
+
+Running `oc get sources` will show:
+
+```
 NAME                READY     REASON    SINK                                                         AGE
 test-sink-binding   True                http://event-display-nodejs.knative-test.svc.cluster.local   7s
+```
 
-oc apply -f ./deploy/test-sinkBinding-deployment.yaml
+Once the SinkBinding source is in place, we can create the sink-binding-deployment.  When this object is created, the sinkBinding source will detect the new object with the matching label and inject the K_SINK env variable into the pod.
+
+`oc apply -f ./deploy/sinkBinding-deployment.yaml`
+
+When this pod spins up monitor the event-display pod with: 
+
+`oc logs -f -c user-container -n knative-test  $(oc get pods -o name -n knative-test | grep event-display)` 
+
+To remove the container source eventing example, run:
+
+`oc delete -f ./deploy/eventing-sinkBinding.yaml`
+
+`oc delete -f ./deploy/sinkBinding-deployment.yaml`
 
 ## Kafka Event source example
 

@@ -9,7 +9,6 @@ spec:
     selector:
       matchLabels:
         app: sink-binding
-
   sink:
     ref:
       apiVersion: serving.knative.dev/v1

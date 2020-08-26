@@ -11,7 +11,7 @@ const emitEvent = () => {
     source:
       "/apis/v1/namespaces/knative-test/cronjobsources/eventinghello-container-source",
     data: {
-      msg: "helloworld",
+      name: "Hans Zarkov",
     },
   });
   emitter

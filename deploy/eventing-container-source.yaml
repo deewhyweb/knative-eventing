@@ -12,7 +12,7 @@ spec:
             - name: POD_NAME
               value: "mypod"
             - name: POD_NAMESPACE
-              value: "event-test"
+              value: "knative-test"
   sink:
     ref:
       apiVersion: serving.knative.dev/v1
