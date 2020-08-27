@@ -1,0 +1,6 @@
+apiVersion: messaging.knative.dev/v1beta1 
+kind: Channel
+metadata:
+  name: my-events-channel
+  namespace: knative-test 
+spec: {}

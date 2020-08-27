@@ -1,10 +1,10 @@
-apiVersion: sources.knative.dev
-kind: CronJobSource
+apiVersion: sources.knative.dev/v1alpha2
+kind: PingSource
 metadata:
   name: eventinghello-cronjob-source
 spec:
   schedule: "*/2 * * * *"
-  data: '{"name": "General Klytus"}'
+  jsonData: '{"name": "General Klytus"}'
   sink:
     ref:
       apiVersion: serving.knative.dev/v1alpha1

@@ -1,0 +1,14 @@
+apiVersion: messaging.knative.dev/v1alpha1 
+kind: Subscription
+metadata:
+  name: channel-subscription-2 
+spec:
+  channel:
+    apiVersion: messaging.knative.dev/v1alpha1 
+    kind: Channel
+    name: my-events-channel
+  subscriber: 
+    ref:
+      apiVersion: serving.knative.dev/v1alpha1 
+      kind: Service
+      name: event-display-channel-2

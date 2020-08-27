@@ -1,0 +1,12 @@
+apiVersion: sources.knative.dev/v1alpha2
+kind: PingSource
+metadata:
+  name: eventinghello-cronjob-source-channel
+spec:
+  schedule: "*/2 * * * *"
+  jsonData: '{"name": "Hans Zarkov"}'
+  sink:
+    ref:
+      apiVersion: messaging.knative.dev/v1beta1 
+      kind: Channel
+      name: my-events-channel

@@ -468,7 +468,7 @@ install the camel event source
 
 Deploy the camel time source
 
-`oc applt -f ./deploy/source_timer.yaml` -->
+`oc apply -f ./deploy/source_timer.yaml` -->
 
 ## API server source example
 
@@ -564,3 +564,167 @@ Data:  {
 To delete this object, run: 
 
 `oc delete -f ./deploy/apiserversource.yaml`
+
+## Channels and Subscriptions
+
+All the examples we've gone through so far are examples of the "Source to Sink" pattern, i.e. the Knative Event Source is connected directly to the Knative Service (Sink).  Next we'll demonstrate how to setup an Eventing Channel.
+<!-- 
+curl -L "https://github.com/knative/eventing-contrib/\
+releases/download/v0.14.1/kafka-channel.yaml" \
+ | sed 's/REPLACE_WITH_CLUSTER_URL/my-cluster-kafka-bootstrap.kafka:9092/' \
+ | oc apply --filename - -->
+
+First thing we need to do is to setup the config-kafka config map in the knative-eventing namespace
+
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-kafka
+  namespace: knative-eventing
+data:
+  # Broker URL. Replace this with the URLs for your kafka cluster,
+  # which is in the format of my-cluster-kafka-bootstrap.my-kafka-namespace:9092.
+  bootstrapServers: my-cluster-kafka-bootstrap.kafka:9092
+```
+
+To update this config map run `oc apply ./deploy/channels/kafka-config.yaml`
+
+Next we configure kafka as the default Knative Channel for the knative-test namespace.
+
+To do this we create a config map in the knative-eventing namespace.  As you can see below in the namespaceDefaults section we're defining a KafkaChannel for the knative-test namespace.
+
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: default-ch-webhook
+  namespace: knative-eventing
+data:
+  default-ch-config: |
+    clusterDefault:
+      apiVersion: messaging.knative.dev/v1
+      kind: InMemoryChannel
+    namespaceDefaults:
+      knative-test:
+        apiVersion: messaging.knative.dev/v1alpha1
+        kind: KafkaChannel
+        spec:
+          numPartitions: 2
+          replicationFactor: 1
+```
+
+To create this config map run:
+
+`oc apply -f ./deploy/channels/default-kafka-channel.yaml`
+
+Next we'll setup a channel in the knative-test namespace.  To do this we will create a Channel object with the following configuration.
+
+```
+apiVersion: messaging.knative.dev/v1beta1 
+kind: Channel
+metadata:
+  name: my-events-channel
+  namespace: knative-test 
+spec: {}
+```
+
+To apply create this channel run:
+
+`oc apply -f ./deploy/channels/channel.yaml`
+
+Running `oc get channel` will now "confusingly" show two channels listed, both should show READY=true
+
+```
+oc get channel     
+NAME                READY     REASON    URL                                                                  AGE
+my-events-channel   True                http://my-events-channel-kn-channel.knative-test.svc.cluster.local   24m
+
+NAME                READY     REASON    URL                                                                  AGE
+my-events-channel   True                http://my-events-channel-kn-channel.knative-test.svc.cluster.local   24m
+```
+
+The reason for this is the channel creation automatically created a KafkaChannel, running `oc describe channel` will show both channels and their relationship.
+
+We should now be able to see the channel we created listed in the kafka topics
+
+oc  -n kafka exec my-cluster-kafka-0 -c kafka -i -t -- bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
+
+```
+__consumer_offsets
+knative-messaging-kafka.knative-test.my-events-channnel
+my-topic
+```
+
+Now we can create a PingSource using this channel as a sink.  
+
+```
+apiVersion: sources.knative.dev/v1alpha2
+kind: PingSource
+metadata:
+  name: eventinghello-cronjob-source-channel
+spec:
+  schedule: "*/2 * * * *"
+  jsonData: '{"name": "Hans Zarkov"}'
+  sink:
+    ref:
+      apiVersion: messaging.knative.dev/v1beta1 
+      kind: Channel
+      name: my-events-channel
+
+```
+
+`oc apply -f ./deploy/channels/eventinghello-source-ch.yaml`
+
+Running `oc get pingsource` should show:
+
+```
+NAME                                   READY     REASON    SINK                                                                 AGE
+eventinghello-cronjob-source-channel   True                http://my-events-channel-kn-channel.knative-test.svc.cluster.local   27m
+```
+
+
+Create two Knative Services:
+
+`oc apply -f ./deploy/channels/event-display-channel1.yaml`
+
+`oc apply -f ./deploy/channels/event-display-channel1.yaml`
+
+Finally create subscriptions for these services to the channel
+
+```
+apiVersion: messaging.knative.dev/v1alpha1 
+kind: Subscription
+metadata:
+  name: channel-subscription-1
+spec:
+  channel:
+    apiVersion: messaging.knative.dev/v1beta1 
+    kind: Channel
+    name: my-events-channel
+  subscriber: 
+    ref:
+      apiVersion: serving.knative.dev/v1alpha1 
+      kind: Service
+      name: event-display-channel-1
+```
+
+`oc apply -f ./deploy/channels/event-display-channel1.yaml`
+
+`oc apply -f ./deploy/channels/event-display-channel2.yaml`
+
+We can now wait for the pingSource to fire the event, invoking the service.  Looking at the logs of the service you should see:
+
+```
+App Version 1.0 listening on:  8080
+Received body
+{ name: 'Hans Zarkov' }
+{"id":"3fd0a8a0-401b-44f3-8e3d-97d87a52d5fa","type":"dev.knative.sources.ping","source":"/apis/v1/namespaces/knative-test/pingsources/eventinghello-cronjob-source-channel","specversion":"1.0","datacontenttype":"application/json","knativehistory":"my-events-channel-kn-channel.knative-test.svc.cluster.local","time":"2020-08-27T18:00:00.000Z","data":{"name":"Hans Zarkov"}}
+CloudEvent Object received. 
+
+Version:  1.0  
+
+Type:  dev.knative.sources.ping  
+
+Data:  { name: 'Hans Zarkov' }  
+```
