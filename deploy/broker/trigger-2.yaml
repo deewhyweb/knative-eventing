@@ -1,0 +1,15 @@
+apiVersion: eventing.knative.dev/v1beta1
+kind: Trigger
+metadata:
+  name: my-service-trigger-2
+  namespace: knative-test
+spec:
+  broker: default
+  filter:
+    attributes:
+      type: dev.knative.container.event
+  subscriber:
+    ref:
+      apiVersion: serving.knative.dev/v1beta1
+      kind: Service
+      name: event-display-broker-2

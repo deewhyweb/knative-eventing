@@ -644,7 +644,7 @@ NAME                READY     REASON    URL                                     
 my-events-channel   True                http://my-events-channel-kn-channel.knative-test.svc.cluster.local   24m
 ```
 
-The reason for this is the channel creation automatically created a KafkaChannel, running `oc describe channel` will show both channels and their relationship.
+The reason for this duplication is the channel creation automatically created a KafkaChannel, running `oc describe channel` will show both channels and their relationship.
 
 We should now be able to see the channel we created listed in the kafka topics
 
@@ -727,4 +727,150 @@ Version:  1.0
 Type:  dev.knative.sources.ping  
 
 Data:  { name: 'Hans Zarkov' }  
+```
+# Brokers and triggers
+
+Brokers are similar to channels but also add the ability to add triggers and filters to route messages based on header data.
+
+`oc apply -f ./deploy/broker/broker.yaml`
+
+To check the status of the broker run `oc get brokers`
+
+```
+NAME      READY     REASON    URL                                                                             AGE
+default   True                http://broker-ingress.knative-eventing.svc.cluster.local/knative-test/default   24m
+```
+
+If you don't see True in the READY column, run `oc describe broker default` to check the events.
+
+Next we will deploy two Knative services event-display-broker-1 and event-display-broker-2
+
+`oc apply -f ./deploy/broker/event-display-broker-1.yaml`
+
+`oc apply -f ./deploy/broker/event-display-broker-2.yaml`
+
+Once these are deployed we can deploy some triggers.  We're going to deploy two triggers, one to filter messages from **dev.knative.sources.ping** and the other to filter messages from **dev.knative.container.event**
+
+The format of these triggers are as follows:
+
+```
+apiVersion: eventing.knative.dev/v1beta1
+kind: Trigger
+metadata:
+  name: my-service-trigger-1
+  namespace: knative-test
+spec:
+  broker: default
+  filter:
+    attributes:
+      type: dev.knative.sources.ping
+  subscriber:
+    ref:
+      apiVersion: serving.knative.dev/v1beta1
+      kind: Service
+      name: event-display-broker-1
+```
+
+```
+apiVersion: eventing.knative.dev/v1beta1
+kind: Trigger
+metadata:
+  name: my-service-trigger-2
+  namespace: knative-test
+spec:
+  broker: default
+  filter:
+    attributes:
+      type: dev.knative.container.event
+  subscriber:
+    ref:
+      apiVersion: serving.knative.dev/v1beta1
+      kind: Service
+      name: event-display-broker-2
+```
+
+To create these run:
+
+`oc apply -f ./deploy/broker/trigger-1.yaml`
+
+`oc apply -f ./deploy/broker/trigger-2.yaml`
+
+Running `oc get triggers` should show:
+
+```
+NAME                   READY     REASON    BROKER    SUBSCRIBER_URI   AGE
+my-service-trigger-1   True                default                    8m13s
+my-service-trigger-2   True                default                    8m18s
+```
+
+Again, if you don't see True in the READY column check the trigger with `oc describe trigger trigger-name` to check the events.
+
+Once the triggers are deployed we can now deploy to Event sources, a ping source and container source.  Both of these are configured with their Sink pointing to the broker.
+
+```
+apiVersion: sources.knative.dev/v1alpha2
+kind: PingSource
+metadata:
+  name: test-ping-source
+spec:
+  schedule: "*/1 * * * *"
+  jsonData: '{"message": "Hello world!"}'
+  sink:
+    ref:
+      # Deliver events to Broker.
+      apiVersion: eventing.knative.dev/v1beta1
+      kind: Broker
+      name: default
+```
+
+```
+apiVersion: sources.knative.dev/v1alpha2
+kind: ContainerSource
+metadata:
+  name: broker-container-source
+spec:
+  template:
+    spec:
+      containers:
+        - image: image-registry.openshift-image-registry.svc:5000/knative-test/container-source:latest
+          name: container-source
+          env:
+            - name: POD_NAME
+              value: "mypod"
+            - name: POD_NAMESPACE
+              value: "knative-test"
+  sink:
+    ref:
+      # Deliver events to Broker.
+      apiVersion: eventing.knative.dev/v1beta1
+      kind: Broker
+      name: default
+```
+
+To deploy these run:
+
+`oc apply -f ./deploy/broker/ping-source.yaml`
+
+`oc apply -f ./deploy/broker/container-source.yaml`
+
+Running `oc get sources` should show:
+
+```
+NAME               READY     REASON    SINK                                                                            AGE
+test-ping-source   True                http://broker-ingress.knative-eventing.svc.cluster.local/knative-test/default   22m
+
+NAME                                  READY     REASON    SINK                                                                            AGE
+broker-container-source-sinkbinding   True                http://broker-ingress.knative-eventing.svc.cluster.local/knative-test/default   13m
+
+NAME                      READY     REASON    SINK                                                                            AGE
+broker-container-source   True                http://broker-ingress.knative-eventing.svc.cluster.local/knative-test/default   13m
+```
+
+After a while you should see both versions of the event-display-broker being invoked.
+
+```
+NAME                                                       READY     STATUS    RESTARTS   AGE
+broker-container-source-deployment-7485f95565-xl4pd        1/1       Running   0          4m54s
+event-display-broker-1-2g6qd-deployment-7f7889499d-mmw5g   2/2       Running   0          93s
+event-display-broker-2-qtnpw-deployment-5c8df4dc95-7qlpg   2/2       Running   0          33s
 ```

@@ -1,0 +1,5 @@
+apiVersion: eventing.knative.dev/v1beta1
+kind: Broker
+metadata:
+  name: default
+  namespace: knative-test

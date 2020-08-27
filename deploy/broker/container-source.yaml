@@ -1,0 +1,21 @@
+apiVersion: sources.knative.dev/v1alpha2
+kind: ContainerSource
+metadata:
+  name: broker-container-source
+spec:
+  template:
+    spec:
+      containers:
+        - image: image-registry.openshift-image-registry.svc:5000/knative-test/container-source:latest
+          name: container-source
+          env:
+            - name: POD_NAME
+              value: "mypod"
+            - name: POD_NAMESPACE
+              value: "knative-test"
+  sink:
+    ref:
+      # Deliver events to Broker.
+      apiVersion: eventing.knative.dev/v1beta1
+      kind: Broker
+      name: default
