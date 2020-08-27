@@ -175,16 +175,16 @@ Event Accepted
 
 ## Create simple cron source knative eventing example
 
-Now that we have a Knative service running which will parse CloudEvents, we can start creating some example Event Sources, starting with a simple cron source.  To do this we can use the sources.knative.dev/CronJobSource a CRD which is created by default with Knative Eventing.
+Now that we have a Knative service running which will parse CloudEvents, we can start creating some example Event Sources, starting with a simple ping source.  To do this we can use the sources.knative.dev/PingSource a CRD which is created by default with Knative Eventing.
 
 ```
 apiVersion: sources.knative.dev
-kind: CronJobSource
+kind: PingSource
 metadata:
-  name: eventinghello-cronjob-source
+  name: eventinghello-Ping-source
 spec:
   schedule: "*/2 * * * *"
-  data: '{"name": "General Klytus"}'
+  jsonData: '{"name": "General Klytus"}'
   sink:
     ref:
       apiVersion: serving.knative.dev/v1alpha1
@@ -192,7 +192,7 @@ spec:
       name: event-display-nodejs
 ```
 
-Every two minutes the eventinghello-cronjob-source cron source will create an event which it will emit to the sink, in this case event-display-nodejs. To deploy this event source, run:
+Every two minutes the eventinghello-Ping-source ping source will create an event which it will emit to the sink, in this case event-display-nodejs. To deploy this event source, run:
 
 `oc apply -f ./deploy/eventinghello-source.yaml`
 
@@ -204,7 +204,7 @@ When then event-display-nodejs-xxxx pod is created, montitor the logs with:
 
 `oc logs -f -c user-container -n knative-test  $(oc get pods -o name -n knative-test | grep event-display)` 
 
-To remove the cron source eventing example, run:
+To remove the ping source eventing example, run:
 
 `oc delete -f ./deploy/eventinghello-source.yaml`
 
@@ -288,6 +288,7 @@ test-container-source   True                http://event-display-nodejs.knative-
 ```
 
 Key thing here is the SINK url, this is the same url which is injected into the container source pod as K_SINK.
+Also ensure you see "True" under the READY column.  If you don't run `oc describe ContainerSource test-container-source` to view events
 
 When then event-display-nodejs-xxxx pod is created, montitor the logs with:
 
@@ -614,7 +615,7 @@ data:
           replicationFactor: 1
 ```
 
-To create this config map run:
+To update this config map run:
 
 `oc apply -f ./deploy/channels/default-kafka-channel.yaml`
 
