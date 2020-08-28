@@ -645,7 +645,7 @@ NAME                READY     REASON    URL                                     
 my-events-channel   True                http://my-events-channel-kn-channel.knative-test.svc.cluster.local   24m
 ```
 
-The reason for this duplication is the channel creation automatically created a KafkaChannel, running `oc describe channel` will show both channels and their relationship.
+The reason for this apparent duplication is the channel creation automatically created a KafkaChannel, running `oc describe channel` will show both channels and their relationship.
 
 We should now be able to see the channel we created listed in the kafka topics
 
@@ -684,8 +684,9 @@ NAME                                   READY     REASON    SINK                 
 eventinghello-cronjob-source-channel   True                http://my-events-channel-kn-channel.knative-test.svc.cluster.local   27m
 ```
 
+Ensure this record shows READY=true, if it doesn't run `oc describe pingsource eventinghello-cronjob-source-channel` to view the events.
 
-Create two Knative Services:
+Next, create two Knative Services:
 
 `oc apply -f ./deploy/channels/event-display-channel1.yaml`
 
