@@ -442,6 +442,8 @@ spec:
 
 To create this event source run: 
 
+`oc project knative-test`
+
 `oc apply -f ./deploy/event-source-kafka.yaml`
 
 Once this event source is created we can now test creating some messages in the my-topic topic
@@ -589,7 +591,7 @@ data:
   bootstrapServers: my-cluster-kafka-bootstrap.kafka:9092
 ```
 
-To update this config map run `oc apply ./deploy/channels/kafka-config.yaml`
+To update this config map run `oc apply -f ./deploy/channels/kafka-config.yaml`
 
 Next we configure kafka as the default Knative Channel for the knative-test namespace.
 
@@ -690,7 +692,7 @@ Next, create two Knative Services:
 
 `oc apply -f ./deploy/channels/event-display-channel1.yaml`
 
-`oc apply -f ./deploy/channels/event-display-channel1.yaml`
+`oc apply -f ./deploy/channels/event-display-channel2.yaml`
 
 Finally create subscriptions for these services to the channel
 
@@ -711,9 +713,9 @@ spec:
       name: event-display-channel-1
 ```
 
-`oc apply -f ./deploy/channels/event-display-channel1.yaml`
+`oc apply -f ./deploy/channels/channel-1-subscription.yaml`
 
-`oc apply -f ./deploy/channels/event-display-channel2.yaml`
+`oc apply -f ./deploy/channels/channel-2-subscription.yaml`
 
 We can now wait for the pingSource to fire the event, invoking the service.  Looking at the logs of the service you should see:
 
@@ -730,6 +732,23 @@ Type:  dev.knative.sources.ping
 
 Data:  { name: 'Hans Zarkov' }  
 ```
+
+To remove this channel and subscriptions
+
+`oc delete -f ./deploy/channels/channel-1-subscription.yaml`
+
+`oc delete -f ./deploy/channels/channel-2-subscription.yaml`
+
+`oc delete -f ./deploy/channels/event-display-channel1.yaml`
+
+`oc delete -f ./deploy/channels/event-display-channel2.yaml`
+
+`oc delete -f ./deploy/channels/eventinghello-source-ch.yaml`
+
+`oc delete -f ./deploy/channels/channel.yaml`
+
+
+
 # Brokers and triggers
 
 Brokers are similar to channels but also add the ability to add triggers and filters to route messages based on header data.
