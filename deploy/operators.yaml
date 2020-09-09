@@ -1,5 +1,5 @@
 apiVersion: operators.coreos.com/v1
-kind: CatalogSourceConfig
+kind: OperatorGroup
 metadata:
   name: operators
   namespace: openshift-marketplace
@@ -9,7 +9,7 @@ spec:
   packages: serverless-operator
 ---
 apiVersion: operators.coreos.com/v1
-kind: CatalogSourceConfig
+kind: OperatorGroup
 metadata:
   name: additional-operators
   namespace: openshift-marketplace

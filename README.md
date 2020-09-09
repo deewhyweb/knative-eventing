@@ -895,3 +895,20 @@ broker-container-source-deployment-7485f95565-xl4pd        1/1       Running   0
 event-display-broker-1-2g6qd-deployment-7f7889499d-mmw5g   2/2       Running   0          93s
 event-display-broker-2-qtnpw-deployment-5c8df4dc95-7qlpg   2/2       Running   0          33s
 ```
+
+To delete this broker:
+
+
+`oc delete -f ./deploy/broker/container-source.yaml`
+
+`oc delete -f ./deploy/broker/ping-source.yaml`
+
+`oc delete -f ./deploy/broker/trigger-1.yaml`
+
+`oc delete -f ./deploy/broker/trigger-2.yaml`
+
+`oc delete -f ./deploy/broker/event-display-broker-1.yaml`
+
+`oc delete -f ./deploy/broker/event-display-broker-2.yaml`
+
+`oc delete -f ./deploy/broker/broker.yaml`

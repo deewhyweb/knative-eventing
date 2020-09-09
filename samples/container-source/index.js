@@ -2,7 +2,7 @@ const { CloudEvent, Emitter } = require("cloudevents");
 const emitter = new Emitter({
   url: process.env.K_SINK, // we get the url for the emitter from the K_SINK environment variable which is injected by the knative container source
 });
-var cron = require("node-cron");
+const cron = require("node-cron");
 
 const emitEvent = () => {
   console.log("About to emit event");
