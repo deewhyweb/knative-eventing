@@ -5,6 +5,7 @@ app.use(bodyParser.json());
 
 app.post('/', (req, res) => {
   try {
+    console.log("body:",req.body);
     let myevent = Receiver.accept(req.headers, req.body);
     console.log('CloudEvent Object received. \n');
     console.log('Version: ', myevent.specversion, ' \n');
