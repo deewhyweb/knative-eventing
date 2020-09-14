@@ -50,10 +50,6 @@ Brokers and Triggers add filtering of events to channels.  Subscribers register 
 
 Install Serverless Operator, strimzi operator and Knative Apache Kafka operator
 
-`oc apply -f ./deploy/operators.yaml`
-
-Deploy operator subscriptions
-
 `oc apply -f ./deploy/operator-subscriptions.yaml`
 
 ## Install knative eventing and serving
@@ -298,7 +294,7 @@ To remove the container source eventing example, run:
 
 `oc delete -f ./deploy/eventing-container-source.yaml`
 
-## Sink Binding example
+## Sink Binding example KEN0b1!
 
 For the sink binding example we can use the same container as we did for the container source example, the end result is the same, the difference being the sinkBinding object is applied to the pods parent, in this case a deployment object. i.e.
 

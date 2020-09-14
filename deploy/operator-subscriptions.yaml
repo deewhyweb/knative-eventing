@@ -6,8 +6,8 @@ metadata:
 spec:
   channel: stable
   name: strimzi-kafka-operator 
-  source: additional-operators 
-  sourceNamespace: openshift-operators
+  source: community-operators 
+  sourceNamespace: openshift-marketplace
 ---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
@@ -17,8 +17,8 @@ metadata:
 spec:
   channel: "4.5"
   name: serverless-operator 
-  source: operators 
-  sourceNamespace: openshift-operators
+  source: redhat-operators 
+  sourceNamespace: openshift-marketplace
 ---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
@@ -28,5 +28,5 @@ metadata:
 spec:
   channel: alpha
   name: knative-kafka-operator 
-  source: additional-operators 
-  sourceNamespace: openshift-operators
+  source: community-operators 
+  sourceNamespace: openshift-marketplace
