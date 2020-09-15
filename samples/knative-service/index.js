@@ -1,17 +1,8 @@
 const app = require('express')();
 const {Receiver} = require("cloudevents");
-app.use((req, res, next) => {
-  let data = "";
-
-  //req.setEncoding("utf8");
-  req.on("data", function(chunk) {
-      data += chunk;
-  });
-  req.on("end", function() {
-      req.body = data;
-      next();
-  });
-});
+const bodyParser = require('body-parser');
+req.headers['content-type'] = req.headers['content-type'] || 'application/json';
+app.use(bodyParser());
 
 app.post('/', (req, res) => {
   try {
