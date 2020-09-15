@@ -2,10 +2,12 @@ const app = require('express')();
 const {Receiver} = require("cloudevents");
 const bodyParser = require('body-parser');
 
-
-app.post('/', (req, res) => {
+app.use((req, res, next) =>{
   req.headers['content-type'] = req.headers['content-type'] || 'application/json';
-  app.use(bodyParser.json());
+  next();
+});
+app.use(bodyParser.json());
+app.post('/', (req, res) => {
   try {
     console.log("body:",req.body);
     console.log("body:",req.headers);
