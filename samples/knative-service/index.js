@@ -5,7 +5,7 @@ const bodyParser = require('body-parser');
 
 app.post('/', (req, res) => {
   req.headers['content-type'] = req.headers['content-type'] || 'application/json';
-  app.use(bodyParser());
+  app.use(bodyParser.json());
   try {
     console.log("body:",req.body);
     console.log("body:",req.headers);
