@@ -1,7 +1,5 @@
 const app = require('express')();
 const {Receiver} = require("cloudevents");
-// Create a receiver to accept events over HTTP
-const receiver = new HTTPReceiver();
 app.use((req, res, next) => {
   let data = "";
 
@@ -18,7 +16,7 @@ app.use((req, res, next) => {
 app.post('/', (req, res) => {
   try {
     console.log("body:",req.body);
-    console.log("headers:",req.headers);
+    console.log("body:",req.headers);
     let myevent = Receiver.accept(req.headers, req.body);
     console.log('CloudEvent Object received. \n');
     console.log('Version: ', myevent.specversion, ' \n');
