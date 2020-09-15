@@ -294,7 +294,7 @@ To remove the container source eventing example, run:
 
 `oc delete -f ./deploy/eventing-container-source.yaml`
 
-## Sink Binding example KEN0b1!
+## Sink Binding example
 
 For the sink binding example we can use the same container as we did for the container source example, the end result is the same, the difference being the sinkBinding object is applied to the pods parent, in this case a deployment object. i.e.
 
